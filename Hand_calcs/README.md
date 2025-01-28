@@ -1,7 +1,7 @@
 # Hand calculation files to calculate the Torque reuired and also the forward kinematics
 The files my_robot.py contain the required code to calculate the forward kinematics and lagrange dynamics for any robot arm.
 
-The usage example is available in the anth_arm_jup.ipynb and anth_arm_kine.ipynb files.
+The usage example is available in the anth_arm_dyne.ipynb and anth_arm_kine.ipynb files.
 
 # Parameters to define for dynamics
 

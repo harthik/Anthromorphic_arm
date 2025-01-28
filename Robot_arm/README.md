@@ -1,5 +1,5 @@
 # Anthromorphic_arm
-The motor_pub.cpp file contains the publisher node. This node publishes the desired incremental joint angles for the robot to reach a desired position. It publishes on the joint_angles topic which is recived by motor_sub code on the esp32. The esp32 moves the stepper motor as desired.
+The motor_pub.cpp file contains the publisher node. This node publishes the desired incremental joint angles for the robot to reach a desired position. It publishes on the joint_angles topic which is recived by the esp32. The esp32 moves the stepper motor as desired.
 
 # Steps to set up the communication.
 # Publisher

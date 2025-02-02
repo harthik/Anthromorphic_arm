@@ -1,0 +1,16 @@
+/home/harthik/joint_pub/install/joint_pub/lib/joint_pub/motor_pub
+/home/harthik/joint_pub/install/joint_pub/share/ament_index/resource_index/package_run_dependencies/joint_pub
+/home/harthik/joint_pub/install/joint_pub/share/ament_index/resource_index/parent_prefix_path/joint_pub
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/environment/ament_prefix_path.sh
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/environment/ament_prefix_path.dsv
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/environment/path.sh
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/environment/path.dsv
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/local_setup.bash
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/local_setup.sh
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/local_setup.zsh
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/local_setup.dsv
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/package.dsv
+/home/harthik/joint_pub/install/joint_pub/share/ament_index/resource_index/packages/joint_pub
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/cmake/joint_pubConfig.cmake
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/cmake/joint_pubConfig-version.cmake
+/home/harthik/joint_pub/install/joint_pub/share/joint_pub/package.xml

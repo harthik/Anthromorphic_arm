@@ -20,7 +20,7 @@ public:
 
 private:
     void timer_callback() {
-        VectorXd qdot = compute_joint_angle_update(a1, a2, q, t); // for calc
+        VectorXd qdot = compute_joint_angle_update(q, t); // for calc
         VectorXd q_move = qdot * dt * 180 / M_PI;  // Not for calc
         accumulated_q_move += q_move;  // Not for calc
         q += qdot * dt;  // for calc
@@ -28,7 +28,7 @@ private:
         elapsed_time += dt;  // Not for calc
 
         // Check if the condition to stop the publisher is met
-        VectorXd xe = direct_kinematics_SCARA(a1, a2, q);
+        VectorXd xe = direct_kinematics_SCARA(q);
         double norm_xe = xe.norm();
         if (norm_xe < 9) {
             RCLCPP_INFO(this->get_logger(), "Stopping publisher: norm(xe) = %f", norm_xe);

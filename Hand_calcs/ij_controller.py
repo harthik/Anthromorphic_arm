@@ -28,9 +28,9 @@ plot_xa = []
 plot_t = []
 q = np.array([0,np.pi/4,-np.pi/2])
 K = np.eye(3)  # Gain matrix
-dt = 0.5
+dt = 0.1
 # Loop for 5 seconds
-while current_time < 5:
+while current_time < 2:
     current_time = time.time() - start_time
     t = current_time
 
@@ -39,9 +39,9 @@ while current_time < 5:
     J_i = jacobian_inverse(q)
     # Desired trajectory (example: a circular trajectory in the XY plane)
     xd = np.array([
-        0.1 * np.cos(t),  # X coordinates
-        0.1,  # Y coordinates
-        0.1  # Z coordinates (constant height)
+        0.14+0.05*t,  # X coordinates
+        0,  # Y coordinates
+        0.05  # Z coordinates (constant height)
     ]).T
 
     # Error
@@ -49,7 +49,7 @@ while current_time < 5:
 
     # Desired velocity (derivative of the desired trajectory)
     dxd = np.array([
-        -0.1 * np.sin(t),  # dX/dt
+        0.05,  # dX/dt
         0,   # dY/dt
         0   # dZ/dt (no change in height)
     ]).T

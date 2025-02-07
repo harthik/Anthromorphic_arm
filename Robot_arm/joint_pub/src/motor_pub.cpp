@@ -31,8 +31,8 @@ private:
         // Check if the condition to stop the publisher is met
         VectorXd xe = direct_kinematics_SCARA(q);
         VectorXd pd(3);
-        pd(0) = 0.14;
-        pd(1) = 0.14;
+        pd(0) = 0.1;
+        pd(1) = 0.13;
         pd(2) = 0.05;
         VectorXd diff = xe - pd;
         double norm_xe = diff.norm();
@@ -82,8 +82,8 @@ private:
 
     VectorXd compute_joint_angle_update(const VectorXd &q, double t) {
         VectorXd pd(3);
-        pd(0) = 0.14;
-        pd(1) = 0.14;
+        pd(0) = 0.1;
+        pd(1) = 0.13;
         pd(2) = 0.05;
 
         VectorXd pd_dot(3);
@@ -107,7 +107,7 @@ private:
         return oss.str();
     }
 
-    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_;  // Change to Float64MultiArray
     rclcpp::TimerBase::SharedPtr timer_;
     VectorXd q;
     double t;
@@ -122,4 +122,3 @@ int main(int argc, char *argv[]) {
     rclcpp::shutdown();
     return 0;
 }
-

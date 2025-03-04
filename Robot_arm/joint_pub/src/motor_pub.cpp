@@ -27,16 +27,15 @@ private:
         q += qdot * dt;  // for calc
         t += dt;  // for calc
         elapsed_time += dt;  // Not for calcs
-
         // Check if the condition to stop the publisher is met
         VectorXd xe = direct_kinematics_SCARA(q);
         VectorXd pd(3);
-        pd(0) = 0.1;
-        pd(1) = 0.13;
-        pd(2) = 0.05;
+        pd(0) = 0.097;
+        pd(1) = 0.096;
+        pd(2) = 0.1;
         VectorXd diff = xe - pd;
         double norm_xe = diff.norm();
-        if (norm_xe < 0.001) {
+        if (norm_xe < 0.005) {
             RCLCPP_INFO(this->get_logger(), "Stopping publisher: norm(xe) = %f", norm_xe);
             rclcpp::shutdown();
             return;
@@ -48,7 +47,7 @@ private:
             std_msgs::msg::Float64MultiArray msg;
             msg.data = std::vector<double>(q.data(), q.data() + q.size()); // publish accumilaed_q_move for physical stepper motors
             publisher_->publish(msg);
-
+            RCLCPP_INFO(this->get_logger(), "publishing qdot: [%f, %f, %f]", q(0) * 180 / M_PI, q(1) * 180 / M_PI, q(2) * 180 / M_PI);
             // std::string joint_angles_str = vector_to_string(msg.data);  // Convert the vector to a string
             // RCLCPP_INFO(this->get_logger(), "Publishing joint angles: %s", joint_angles_str.c_str());
 
@@ -60,51 +59,45 @@ private:
 
     VectorXd direct_kinematics_SCARA(const VectorXd &q) {
         VectorXd xe(3);
-        xe(0) = 0.1 * (cos(q(1)) + cos(q(1) + q(2))) * cos(q(0));
-        xe(1) = 0.1 * (cos(q(1)) + cos(q(1) + q(2))) * sin(q(0));
-        xe(2) = 0.1 * sin(q(1)) + 0.1 * sin(q(1) + q(2)) + 0.05;
+        xe(0) = 0.048 * cos(q(0) - q(1)) + 0.048 * cos(q(0) + q(1)) + 0.049 * cos(-q(0) + q(1) + q(2)) + 0.049 * cos(q(0) + q(1) + q(2));
+        xe(1) = 0.048 * sin(q(0) - q(1)) + 0.048 * sin(q(0) + q(1)) - 0.049 * sin(-q(0) + q(1) + q(2)) + 0.049 * sin(q(0) + q(1) + q(2));
+        xe(2) = 0.096 * sin(q(1)) + 0.098 * sin(q(1) + q(2)) + 0.06;
         return xe;
     }
 
     MatrixXd analytical_jacobian(const VectorXd &q) {
         MatrixXd J_A(3, 3);
-        J_A(0, 0) = -0.1 * (cos(q(1)) + cos(q(1) + q(2))) * sin(q(0));
-        J_A(0, 1) = -0.1 * (sin(q(1)) + sin(q(1) + q(2))) * cos(q(0));
-        J_A(0, 2) = -0.1 * sin(q(1) + q(2)) * cos(q(0));
-        J_A(1, 0) = 0.1 * (cos(q(1)) + cos(q(1) + q(2))) * cos(q(0));
-        J_A(1, 1) = -0.1 * (sin(q(1)) + sin(q(1) + q(2))) * sin(q(0));
-        J_A(1, 2) = -0.1 * sin(q(1) + q(2)) * sin(q(0));
+        J_A(0, 0) = -0.048 * sin(q(0) - q(1)) - 0.048 * sin(q(0) + q(1)) + 0.049 * sin(-q(0) + q(1) + q(2)) - 0.049 * sin(q(0) + q(1) + q(2));
+        J_A(0, 1) = 0.048 * sin(q(0) - q(1)) - 0.048 * sin(q(0) + q(1)) - 0.049 * sin(-q(0) + q(1) + q(2)) - 0.049 * sin(q(0) + q(1) + q(2));
+        J_A(0, 2) = -0.049 * sin(-q(0) + q(1) + q(2)) - 0.049 * sin(q(0) + q(1) + q(2));
+        J_A(1, 0) = 0.048 * cos(q(0) - q(1)) + 0.048 * cos(q(0) + q(1)) + 0.049 * cos(-q(0) + q(1) + q(2)) + 0.049 * cos(q(0) + q(1) + q(2));
+        J_A(1, 1) = -0.048 * cos(q(0) - q(1)) + 0.048 * cos(q(0) + q(1)) - 0.049 * cos(-q(0) + q(1) + q(2)) + 0.049 * cos(q(0) + q(1) + q(2));
+        J_A(1, 2) = -0.049 * cos(-q(0) + q(1) + q(2)) + 0.049 * cos(q(0) + q(1) + q(2));
         J_A(2, 0) = 0;
-        J_A(2, 1) = 0.1 * (cos(q(1)) + cos(q(1) + q(2)));
-        J_A(2, 2) = 0.1 * cos(q(1) + q(2));
+        J_A(2, 1) = 0.096 * cos(q(1)) + 0.098 * cos(q(1) + q(2));
+        J_A(2, 2) = 0.098 * cos(q(1) + q(2));
+        
         return J_A;
     }
 
     VectorXd compute_joint_angle_update(const VectorXd &q, double t) {
         VectorXd pd(3);
-        pd(0) = 0.1;
-        pd(1) = 0.13;
-        pd(2) = 0.05;
+        pd(0) = 0.097;
+        pd(1) = 0.096;
+        pd(2) = 0.1;
 
         VectorXd pd_dot(3);
-        pd_dot(0) = 0.05;
-        pd_dot(1) = 0.05;
+        pd_dot(0) = 0.0;
+        pd_dot(1) = 0.0;
         pd_dot(2) = 0;
 
         MatrixXd K = MatrixXd::Identity(3, 3);
         VectorXd x_e = direct_kinematics_SCARA(q);
         MatrixXd J_A = analytical_jacobian(q);
         VectorXd e = pd - x_e;
-        VectorXd qdot = J_A.inverse() * (pd_dot + K * e);
+        MatrixXd J_A_pseudo_inverse = J_A.completeOrthogonalDecomposition().pseudoInverse();
+        VectorXd qdot = J_A_pseudo_inverse * (pd_dot + K * e);
         return qdot;
-    }
-
-    std::string vector_to_string(const std::vector<int>& vec) {
-        std::ostringstream oss;
-        for (const auto& val : vec) {
-            oss << val << " ";
-        }
-        return oss.str();
     }
 
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_;  // Change to Float64MultiArray

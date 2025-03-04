@@ -1,96 +1,161 @@
 import numpy as np
-import time
-from matplotlib.animation import FuncAnimation
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
-def jacobian_inverse(q):
-    J = jacobian(q)
-    return np.linalg.pinv(J)
+class SCARAKinematics:
+    def __init__(self):
+        # Initial joint angles
+        self.q = np.array([0.0, np.pi/4, -np.pi/2])
+        self.t = 0.0
+        self.dt = 0.01
+        
+        # Desired end-effector position
+        self.pd = np.array([0.097, 0.096, 0.058])
+        
+        # Proportional gain matrix
+        self.K = np.eye(3)
+        
+    def direct_kinematics_SCARA(self, q):
+        """Calculate end-effector position using direct kinematics"""
+        xe = np.zeros(3)
+        xe[0] = (0.048 * np.cos(q[0] - q[1]) + 
+                 0.048 * np.cos(q[0] + q[1]) + 
+                 0.049 * np.cos(-q[0] + q[1] + q[2]) + 
+                 0.049 * np.cos(q[0] + q[1] + q[2]))
+        
+        xe[1] = (0.048 * np.sin(q[0] - q[1]) + 
+                 0.048 * np.sin(q[0] + q[1]) - 
+                 0.049 * np.sin(-q[0] + q[1] + q[2]) + 
+                 0.049 * np.sin(q[0] + q[1] + q[2]))
+        
+        xe[2] = (0.096 * np.sin(q[1]) + 
+                 0.098 * np.sin(q[1] + q[2]) + 
+                 0.06)
+        
+        return xe
+    
+    def analytical_jacobian(self, q):
+        """Calculate the analytical Jacobian matrix"""
+        J_A = np.zeros((3, 3))
+        
+        # First row
+        J_A[0, 0] = (-0.048 * np.sin(q[0] - q[1]) - 
+                     0.048 * np.sin(q[0] + q[1]) + 
+                     0.049 * np.sin(-q[0] + q[1] + q[2]) - 
+                     0.049 * np.sin(q[0] + q[1] + q[2]))
+        J_A[0, 1] = (0.048 * np.sin(q[0] - q[1]) - 
+                     0.048 * np.sin(q[0] + q[1]) - 
+                     0.049 * np.sin(-q[0] + q[1] + q[2]) - 
+                     0.049 * np.sin(q[0] + q[1] + q[2]))
+        J_A[0, 2] = (-0.049 * np.sin(-q[0] + q[1] + q[2]) - 
+                     0.049 * np.sin(q[0] + q[1] + q[2]))
+        
+        # Second row
+        J_A[1, 0] = (0.048 * np.cos(q[0] - q[1]) + 
+                     0.048 * np.cos(q[0] + q[1]) + 
+                     0.049 * np.cos(-q[0] + q[1] + q[2]) + 
+                     0.049 * np.cos(q[0] + q[1] + q[2]))
+        J_A[1, 1] = (-0.048 * np.cos(q[0] - q[1]) + 
+                     0.048 * np.cos(q[0] + q[1]) - 
+                     0.049 * np.cos(-q[0] + q[1] + q[2]) + 
+                     0.049 * np.cos(q[0] + q[1] + q[2]))
+        J_A[1, 2] = (-0.049 * np.cos(-q[0] + q[1] + q[2]) + 
+                     0.049 * np.cos(q[0] + q[1] + q[2]))
+        
+        # Third row
+        J_A[2, 0] = 0
+        J_A[2, 1] = (0.096 * np.cos(q[1]) + 
+                     0.098 * np.cos(q[1] + q[2]))
+        J_A[2, 2] = 0.098 * np.cos(q[1] + q[2])
+        
+        return J_A
+    
+    def compute_joint_angle_update(self):
+        """Compute joint angle updates using Jacobian pseudoinverse"""
+        pd_dot = np.array([0.0, 0.0, 0])
+        
+        x_e = self.direct_kinematics_SCARA(self.q)
+        J_A = self.analytical_jacobian(self.q)
+        
+        # Error calculation
+        e = self.pd - x_e
+        
+        # Pseudoinverse using numpy's built-in method
+        J_A_pseudo_inverse = np.linalg.pinv(J_A)
+        
+        J_A_inverse = np.linalg.inv(J_A)
+        # Joint velocity calculation
+        qdot = J_A_inverse @ (pd_dot + self.K @ e)
+        
+        return qdot
+    
+    def simulate(self, max_iterations=500):
+        """Simulate robot movement and track positions"""
+        positions = []
+        joint_angles = []
+        
+        for _ in range(max_iterations):
+            # Compute joint angle updates
+            qdot = self.compute_joint_angle_update()
+            
+            # Update joint angles
+            self.q += qdot * self.dt
+            
+            # Track positions
+            current_pos = self.direct_kinematics_SCARA(self.q)
+            positions.append(current_pos)
+            joint_angles.append(self.q.copy())
+            
+            # Check convergence
+            error = np.linalg.norm(self.pd - current_pos)
+            if error < 0.005:
+                break
+        
+        return np.array(positions), np.array(joint_angles)
+    
+    def plot_results(self, positions, joint_angles):
+        """Create multiple plots for visualization"""
+        plt.figure(figsize=(15, 5))
+        
+        # End-effector position trajectory
+        plt.subplot(131)
+        plt.plot(positions[:, 0], positions[:, 1], label='XY Trajectory')
+        plt.scatter(self.pd[0], self.pd[1], color='red', label='Target')
+        plt.title('End-Effector XY Trajectory')
+        plt.xlabel('X Position')
+        plt.ylabel('Y Position')
+        plt.legend()
+        
+        # Z position trajectory
+        plt.subplot(132)
+        plt.plot(positions[:, 2], label='Z Position')
+        plt.title('End-Effector Z Position')
+        plt.xlabel('Iteration')
+        plt.ylabel('Z Position')
+        plt.legend()
+        
+        # Joint angles
+        plt.subplot(133)
+        plt.plot(joint_angles[:, 0] * 180/np.pi, label='Joint 1')
+        plt.plot(joint_angles[:, 1] * 180/np.pi, label='Joint 2')
+        plt.plot(joint_angles[:, 2] * 180/np.pi, label='Joint 3')
+        plt.title('Joint Angles')
+        plt.xlabel('Iteration')
+        plt.ylabel('Angle (degrees)')
+        plt.legend()
+        
+        plt.tight_layout()
+        plt.show()
 
-def jacobian(q):
-    return np.array([
-        [-0.1 * (np.cos(q[1]) + np.cos(q[1] + q[2])) * np.sin(q[0]), -0.1 * (np.sin(q[1]) + np.sin(q[1] + q[2])) * np.cos(q[0]), -0.1 * np.sin(q[1] + q[2]) * np.cos(q[0])],
-        [0.1 * (np.cos(q[1]) + np.cos(q[1] + q[2])) * np.cos(q[0]), -0.1 * (np.sin(q[1]) + np.sin(q[1] + q[2])) * np.sin(q[0]), -0.1 * np.sin(q[0]) * np.sin(q[1] + q[2])],
-        [0, 0.1 * (np.cos(q[1]) + np.cos(q[1] + q[2])), 0.1 * np.cos(q[1] + q[2])]
-    ])
+def main():
+    # Create SCARA kinematics simulation
+    scara = SCARAKinematics()
+    
+    # Run simulation
+    positions, joint_angles = scara.simulate()
+    
+    # Plot results
+    scara.plot_results(positions, joint_angles)
 
-def fkine(q):
-    return np.array([
-        0.1 * (np.cos(q[1]) + np.cos(q[1] + q[2])) * np.cos(q[0]),
-        0.1 * (np.cos(q[1]) + np.cos(q[1] + q[2])) * np.sin(q[0]),
-        0.1 * np.sin(q[1]) + 0.1 * np.sin(q[1] + q[2]) + 0.05
-    ])
-# Time parameters
-start_time = time.time()
-current_time = 0
-plot_xd = []
-plot_xa = []
-plot_t = []
-q = np.array([0,np.pi/4,-np.pi/2])
-K = np.eye(3)  # Gain matrix
-dt = 0.1
-# Loop for 5 seconds
-while current_time < 2:
-    current_time = time.time() - start_time
-    t = current_time
-
-    xa = fkine(q)
-    # Compute the Jacobian inverse
-    J_i = jacobian_inverse(q)
-    # Desired trajectory (example: a circular trajectory in the XY plane)
-    xd = np.array([
-        0.14+0.05*t,  # X coordinates
-        0,  # Y coordinates
-        0.05  # Z coordinates (constant height)
-    ]).T
-
-    # Error
-    e = xd - xa
-
-    # Desired velocity (derivative of the desired trajectory)
-    dxd = np.array([
-        0.05,  # dX/dt
-        0,   # dY/dt
-        0   # dZ/dt (no change in height)
-    ]).T
-
-    # Control
-    u = K @ e + dxd
-    # Update the joint angles
-    q_update = J_i @ u * dt
-
-    q = q + q_update
-    print(q_update*180/np.pi)
-    print(q*180/np.pi)
-
-    plot_xd.append(xd)
-    plot_xa.append(xa)
-    plot_t.append(t)
-    # Sleep for a short duration to simulate real-time loop
-    time.sleep(dt)
-
-plot_xd = np.array(plot_xd)
-plot_t = np.array(plot_t)
-
-# Plot the desired trajectory
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
-ax1.plot(plot_t, plot_xd[:, 0], label='X Trajectory')
-ax1.plot(plot_t, plot_xd[:, 1], label='Y Trajectory')
-ax1.plot(plot_t, plot_xd[:, 2], label='Z Trajectory')
-ax1.set_xlabel('Time (s)')
-ax1.set_ylabel('Position')
-ax1.set_title('Desired Trajectory')
-ax1.legend()
-
-# Plot actual trajectory
-plot_xa = np.array(plot_xa)  # Ensure plot_xa is a numpy array
-ax2.plot(plot_t, plot_xa[:, 0], label='X Actual')
-ax2.plot(plot_t, plot_xa[:, 1], label='Y Actual')
-ax2.plot(plot_t, plot_xa[:, 2], label='Z Actual')
-ax2.set_xlabel('Time (s)')
-ax2.set_ylabel('Position')
-ax2.set_title('Actual Trajectory')
-ax2.legend()
-
-plt.tight_layout()
-plt.show()
+if __name__ == "__main__":
+    main()
